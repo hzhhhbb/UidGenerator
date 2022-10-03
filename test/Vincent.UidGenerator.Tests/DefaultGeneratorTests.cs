@@ -16,7 +16,7 @@ public class DefaultGeneratorTests
     [SetUp]
     public void Setup()
     {
-        SIZE = 8 * 1000;
+        SIZE = 1 * 1000;
         _defaultUidGeneratorOptions = new DefaultUidGeneratorOptions();
         uidGenerator = new DefaultUidGenerator(_defaultUidGeneratorOptions);
     }

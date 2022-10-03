@@ -16,7 +16,7 @@ public class CachedGeneratorWithSchedulerTests
     [SetUp]
     public void Setup()
     {
-        SIZE = 600 * 10000; 
+        SIZE = 81 * 10000; 
         _cachedUidGeneratorOptions = new CachedUidGeneratorOptions();
         _cachedUidGeneratorOptions.UseScheduler = true;
         _cachedUidGeneratorOptions.ScheduleInterval = 1;
