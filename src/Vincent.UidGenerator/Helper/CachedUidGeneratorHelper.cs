@@ -38,6 +38,24 @@ public class CachedUidGeneratorHelper
         }
     }
 
+    public static void Init(CachedUidGeneratorOptions options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+        
+        if (_uidGenerator != null)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            _uidGenerator ??= new CachedUidGenerator(options);
+        }
+    }
+
     /// <summary>
     /// get uid
     /// </summary>

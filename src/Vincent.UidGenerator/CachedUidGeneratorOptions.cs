@@ -46,6 +46,5 @@ public class CachedUidGeneratorOptions:DefaultUidGeneratorOptions
 	/// <remarks>默认无需指定, 将记录日志, 并抛出UidGenerateException异常. 如有特殊需求, 请传入 Action </remarks>
 	/// </summary>
 	public Action<RingBuffer> RejectedTakeBufferHandler { get; set; }= (x) => throw new UidGenerateException("Rejected take buffer.");
-
 	
 }

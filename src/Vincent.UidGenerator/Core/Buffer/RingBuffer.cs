@@ -11,9 +11,8 @@ public class RingBuffer
 
     private static readonly int StartPoint = -1;
 
-    private static readonly long CanPutFlag = 0L;
-    private static readonly long CanTakeFlag = 1L;
-    public static readonly int DefaultPaddingPercent = 50;
+    private readonly long CanPutFlag = 0L;
+    private readonly long CanTakeFlag = 1L;
 
     /** The size of RingBuffer's slots, each slot hold a UID */
     private readonly int _bufferSize;
@@ -40,25 +39,17 @@ public class RingBuffer
     private BufferPaddingExecutor _bufferPaddingExecutor;
 
     private readonly object _syncLock = new object();
-
-    /**
-     * Constructor with buffer size, paddingFactor default as {@value #DEFAULT_PADDING_PERCENT}
-     * 
-     * @param bufferSize must be positive & a power of 2
-     */
-    public RingBuffer(int bufferSize) : this(bufferSize, DefaultPaddingPercent)
-    {
-    }
-
-    /**
-     * Constructor with buffer size & padding factor
-     * 
-     * @param bufferSize must be positive & a power of 2
-     * @param paddingFactor percent in (0 - 100). When the count of rest available UIDs reach the threshold, it will trigger padding buffer<br>
-     *        Sample: paddingFactor=20, bufferSize=1000 -> threshold=1000 * 20 /100,  
-     *        padding buffer will be triggered when tail-cursor<threshold
-     */
-    public RingBuffer(int bufferSize, int paddingFactor)
+    
+    /// <summary>
+    /// Constructor with buffer size & padding factor
+    /// </summary>
+    /// <param name="bufferSize">bufferSize must be positive & a power of 2</param>
+    /// <param name="paddingFactor">paddingFactor percent in (0 - 100). When the count of rest available UIDs reach the threshold, it will trigger padding buffer
+    ///       Sample: paddingFactor=20, bufferSize=1000 -> threshold=1000 * 20 /100,  
+    ///    padding buffer will be triggered when tail-cursor<threshold</param>
+    /// <exception cref="ArgumentException"></exception>
+    public RingBuffer(int bufferSize, int paddingFactor, Action<RingBuffer, long> rejectedPutBufferHandler=null,
+        Action<RingBuffer> rejectedTakeBufferHandler=null)
     {
         // check buffer size is positive & a power of 2; padding factor in (0, 100)
         if (bufferSize <= 0L)
@@ -84,12 +75,7 @@ public class RingBuffer
         _paddingThreshold = bufferSize * paddingFactor / 100;
         using var loggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
         _logger = loggerFactory.CreateLogger<RingBuffer>();
-    }
-
-    public RingBuffer(int bufferSize, int paddingFactor, Action<RingBuffer, long> rejectedPutBufferHandler,
-        Action<RingBuffer> rejectedTakeBufferHandler)
-        : this(bufferSize, paddingFactor)
-    {
+        
         _rejectedPutHandler =
             rejectedPutBufferHandler ?? throw new ArgumentNullException(nameof(rejectedPutBufferHandler));
         _rejectedTakeHandler = rejectedTakeBufferHandler ??
@@ -144,16 +130,15 @@ public class RingBuffer
         }
     }
 
-    /**
-     * Take an UID of the ring at the next cursor, this is a lock free operation by using atomic cursor<p>
-     * 
-     * Before getting the UID, we also check whether reach the padding threshold, 
-     * the padding buffer operation will be triggered in another thread<br>
-     * If there is no more available UID to be taken, the specified {@link RejectedTakeBufferHandler} will be applied<br>
-     * 
-     * @return UID
-     * @throws IllegalStateException if the cursor moved back
-     */
+
+    /// <summary>
+    /// Take an UID of the ring at the next cursor, this is a lock free operation by using atomic cursor
+    /// Before getting the UID, we also check whether reach the padding threshold,
+    /// the padding buffer operation will be triggered in another thread
+    /// If there is no more available UID to be taken, the specified <see cref="_rejectedTakeHandler"/> will be applied
+    /// </summary>
+    /// <returns>UID</returns>
+    /// <exception cref="UidGenerateException">IllegalStateException if the cursor moved back</exception>
     public long Take()
     {
         // spin get next available cursor
@@ -175,9 +160,9 @@ public class RingBuffer
         {
 #if DEBUG
             _logger.LogInformation(
-                $"Reach the padding threshold:{_paddingThreshold}. tail:{currentTail}, cursor:{nextCursor}, rest:{currentTail - nextCursor}");   
+                $"Reach the padding threshold:{_paddingThreshold}. tail:{currentTail}, cursor:{nextCursor}, rest:{currentTail - nextCursor}");
 #endif
-          
+
             _bufferPaddingExecutor.PaddingBufferAsync();
         }
 
@@ -222,7 +207,7 @@ public class RingBuffer
     /// </summary>
     /// <param name="bufferSize"></param>
     /// <returns></returns>
-    private static PaddedAtomicLong[] InitFlags(int bufferSize)
+    private PaddedAtomicLong[] InitFlags(int bufferSize)
     {
         PaddedAtomicLong[] flags = new PaddedAtomicLong[bufferSize];
         for (int i = 0; i < bufferSize; i++)
@@ -232,7 +217,7 @@ public class RingBuffer
 
         return flags;
     }
-    
+
     /// <summary>
     /// 因为 <see cref="RingBuffer"/> 和 <see cref="BufferPaddingExecutor"/> 互相依赖，使用此方法代替构造函数
     /// </summary>

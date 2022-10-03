@@ -46,6 +46,7 @@ public class BufferPaddingExecutor
     {
         using var loggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
         _logger = loggerFactory.CreateLogger<BufferPaddingExecutor>();
+        
         _lastSecond = new PaddedAtomicLong(DateTimeOffset.Now.ToUnixTimeSeconds());
         _ringBuffer = ringBuffer;
         _uidProvider = uidProvider;

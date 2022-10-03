@@ -14,10 +14,10 @@ public static class UidGeneratorServiceCollectionExtensions
     /// Registers services required by DefaultUidGenerator services.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="options"> option action </param>
+    /// <param name="options"> Configure generator options </param>
     /// <returns>A <see cref="IServiceCollection"/></returns>
     public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
-        Action<DefaultUidGeneratorOptions> options = null)
+        Action<DefaultUidGeneratorOptions>? options = null)
     {
         if (services == null)
         {
@@ -36,6 +36,62 @@ public static class UidGeneratorServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers services required by DefaultUidGenerator services with DB
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="connectionString">DB connection string, depends on <see cref="AssignWorkIdScheme"/></param>
+    /// <param name="options"></param>
+    /// <param name="assignWorkIdScheme">SQLService or MySQL</param>
+    /// <returns>A <see cref="IServiceCollection"/>return <see cref="services"/></returns>
+    public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
+        AssignWorkIdScheme assignWorkIdScheme,
+        string connectionString,
+        Action<DefaultUidGeneratorOptions>? options = null)
+    {
+        if (services == null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException(nameof(connectionString));
+        }
+
+        var defaultOptions = new DefaultUidGeneratorOptions();
+        options?.Invoke(defaultOptions);
+
+        var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
+        defaultOptions.WorkerId = workerId;
+
+        services.AddSingleton<IUidGenerator>(new DefaultUidGenerator(defaultOptions));
+
+        return services;
+    }
+    
+    /// <summary>
+    /// Registers services required by DefaultUidGenerator services.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="options"> Configure generator options </param>
+    /// <returns>A <see cref="IServiceCollection"/></returns>
+    public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
+        Action<CachedUidGeneratorOptions>? options = null)
+    {
+        if (services == null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        var defaultOption = new CachedUidGeneratorOptions();
+        options?.Invoke(defaultOption);
+
+        services.AddSingleton<IUidGenerator>(new CachedUidGenerator(defaultOption));
+
+        return services;
+    }
+    
+    /// <summary>
     /// Registers services required by CachedUidGenerator services with MySQL
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -46,7 +102,7 @@ public static class UidGeneratorServiceCollectionExtensions
     public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
         AssignWorkIdScheme assignWorkIdScheme,
         string connectionString,
-        Action<CachedUidGeneratorOptions> options = null)
+        Action<CachedUidGeneratorOptions>? options = null)
     {
         if (services == null)
         {
@@ -59,10 +115,7 @@ public static class UidGeneratorServiceCollectionExtensions
         }
 
         var defaultOptions = new CachedUidGeneratorOptions();
-        if (options != null)
-        {
-            options(defaultOptions);
-        }
+        options?.Invoke(defaultOptions);
 
         var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
         defaultOptions.WorkerId = workerId;
@@ -71,4 +124,6 @@ public static class UidGeneratorServiceCollectionExtensions
 
         return services;
     }
+    
+    
 }

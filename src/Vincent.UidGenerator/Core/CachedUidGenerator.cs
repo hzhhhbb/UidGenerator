@@ -11,23 +11,9 @@ namespace Vincent.UidGenerator.Core;
 /// </summary>
 public class CachedUidGenerator : DefaultUidGenerator, IDisposable
 {
-    private readonly int _paddingFactor = RingBuffer.DefaultPaddingPercent;
-
     private readonly RingBuffer _ringBuffer;
 
     private readonly BufferPaddingExecutor _bufferPaddingExecutor;
-
-    public override long GetUid()
-    {
-        try
-        {
-            return _ringBuffer.Take();
-        }
-        catch (System.Exception e)
-        {
-            throw new UidGenerateException("Generate unique id exception. ", e);
-        }
-    }
 
     public CachedUidGenerator(CachedUidGeneratorOptions options) : base(options)
     {
@@ -49,7 +35,7 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
         // initialize RingBuffer
         int bufferSize = ((int) BitsAllocator.MaxSequence + 1) << options.BoostPower;
 
-        _ringBuffer = new RingBuffer(bufferSize, _paddingFactor, options.RejectedPutBufferHandler,
+        _ringBuffer = new RingBuffer(bufferSize, options.PaddingFactor, options.RejectedPutBufferHandler,
             options.RejectedTakeBufferHandler);
         _bufferPaddingExecutor = new BufferPaddingExecutor(_ringBuffer, nextIdsForOneSecond, options.UseScheduler,
             options.ScheduleInterval);
@@ -60,6 +46,18 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
 
         // start buffer padding threads
         _bufferPaddingExecutor.Start();
+    }
+
+    public override long GetUid()
+    {
+        try
+        {
+            return _ringBuffer.Take();
+        }
+        catch (System.Exception e)
+        {
+            throw new UidGenerateException("Generate unique id exception. ", e);
+        }
     }
 
     public void Dispose()
@@ -86,13 +84,5 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
         }
 
         return uIds;
-    }
-
-    protected virtual void InitLogger()
-    {
-        // todo init logger from outside
-        using var loggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
-
-        Logger = loggerFactory.CreateLogger<DefaultUidGenerator>();
     }
 }

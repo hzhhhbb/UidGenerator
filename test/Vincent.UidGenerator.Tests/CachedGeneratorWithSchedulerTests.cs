@@ -5,7 +5,7 @@ using Vincent.UidGenerator.Utils;
 
 namespace Vincent.UidGenerator.Tests;
 
-public class CachedGeneratorTests
+public class CachedGeneratorWithSchedulerTests
 {
     private long SIZE; 
     private IUidGenerator uidGenerator;
@@ -18,6 +18,8 @@ public class CachedGeneratorTests
     {
         SIZE = 600 * 10000; 
         _cachedUidGeneratorOptions = new CachedUidGeneratorOptions();
+        _cachedUidGeneratorOptions.UseScheduler = true;
+        _cachedUidGeneratorOptions.ScheduleInterval = 1;
         _cachedUidGeneratorOptions.BoostPower = 3;
         uidGenerator = new CachedUidGenerator(_cachedUidGeneratorOptions);
     }

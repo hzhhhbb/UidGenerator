@@ -1,5 +1,6 @@
 using System;
 using Vincent.UidGenerator.Core;
+using Vincent.UidGenerator.Worker;
 
 namespace Vincent.UidGenerator.Helper;
 
@@ -22,6 +23,35 @@ public static class DefaultUidGeneratorHelper
             _uidGenerator ??= new DefaultUidGenerator(options);
         }
     }
+    
+    public static void Init(AssignWorkIdScheme assignWorkIdScheme,string connectionString,DefaultUidGeneratorOptions options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException(nameof(connectionString));
+        }
+        
+        if (_uidGenerator != null)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (_uidGenerator == null)
+            {
+                var workerId= WorkerIdAssigner.AssignWorkerId(connectionString,assignWorkIdScheme);
+                options.WorkerId = workerId;
+                _uidGenerator = new DefaultUidGenerator(options);
+            }
+        }
+    }
+
 
     /// <summary>
     /// get uid
