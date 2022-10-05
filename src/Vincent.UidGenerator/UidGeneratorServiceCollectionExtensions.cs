@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Vincent.UidGenerator;
 using Vincent.UidGenerator.Core;
@@ -17,20 +18,21 @@ public static class UidGeneratorServiceCollectionExtensions
     /// <param name="options"> Configure generator options </param>
     /// <returns>A <see cref="IServiceCollection"/></returns>
     public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
-        Action<DefaultUidGeneratorOptions>? options = null)
+        Action<DefaultUidGeneratorOptions> options)
     {
         if (services == null)
         {
             throw new ArgumentNullException(nameof(services));
         }
 
-        var defaultOption = new DefaultUidGeneratorOptions();
-        if (options != null)
+        if (options == null)
         {
-            options(defaultOption);
+            throw new ArgumentNullException(nameof(options));
         }
 
-        services.AddSingleton<IUidGenerator>(new DefaultUidGenerator(defaultOption));
+        services.Configure(options);
+
+        services.AddSingleton<IUidGenerator, DefaultUidGenerator>();
 
         return services;
     }
@@ -46,27 +48,17 @@ public static class UidGeneratorServiceCollectionExtensions
     public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
         AssignWorkIdScheme assignWorkIdScheme,
         string connectionString,
-        Action<DefaultUidGeneratorOptions>? options = null)
+        Action<DefaultUidGeneratorOptions> options)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new ArgumentNullException(nameof(connectionString));
-        }
-
-        var defaultOptions = new DefaultUidGeneratorOptions();
-        options?.Invoke(defaultOptions);
-
         var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
-        defaultOptions.WorkerId = workerId;
 
-        services.AddSingleton<IUidGenerator>(new DefaultUidGenerator(defaultOptions));
-
-        return services;
+        options = (option) =>
+        {
+            options.Invoke(option);
+            option.WorkerId = workerId;
+        };
+        
+        return services.AddDefaultUidGeneratorService(options);
     }
     
     /// <summary>
@@ -76,17 +68,21 @@ public static class UidGeneratorServiceCollectionExtensions
     /// <param name="options"> Configure generator options </param>
     /// <returns>A <see cref="IServiceCollection"/></returns>
     public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
-        Action<CachedUidGeneratorOptions>? options = null)
+        Action<CachedUidGeneratorOptions> options)
     {
         if (services == null)
         {
             throw new ArgumentNullException(nameof(services));
         }
+        
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
 
-        var defaultOption = new CachedUidGeneratorOptions();
-        options?.Invoke(defaultOption);
-
-        services.AddSingleton<IUidGenerator>(new CachedUidGenerator(defaultOption));
+        services.Configure(options);
+        
+        services.AddSingleton<IUidGenerator,CachedUidGenerator>();
 
         return services;
     }
@@ -102,25 +98,27 @@ public static class UidGeneratorServiceCollectionExtensions
     public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
         AssignWorkIdScheme assignWorkIdScheme,
         string connectionString,
-        Action<CachedUidGeneratorOptions>? options = null)
+        Action<CachedUidGeneratorOptions> options = null)
     {
         if (services == null)
         {
             throw new ArgumentNullException(nameof(services));
         }
-
+        
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new ArgumentNullException(nameof(connectionString));
         }
-
-        var defaultOptions = new CachedUidGeneratorOptions();
-        options?.Invoke(defaultOptions);
-
+        
         var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
-        defaultOptions.WorkerId = workerId;
+        
+        options = (option) =>
+        {
+            options.Invoke(option);
+            option.WorkerId = workerId;
+        };
 
-        services.AddSingleton<IUidGenerator>(new CachedUidGenerator(defaultOptions));
+        services.AddSingleton<IUidGenerator,CachedUidGenerator>();
 
         return services;
     }

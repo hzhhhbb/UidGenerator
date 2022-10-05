@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Vincent.UidGenerator.Core.Buffer;
 using Vincent.UidGenerator.Exception;
 
@@ -16,6 +17,12 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
     private readonly BufferPaddingExecutor _bufferPaddingExecutor;
     private readonly int _paddingThreshold;
 
+    public CachedUidGenerator(IOptions<CachedUidGeneratorOptions> options, ILogger<CachedUidGenerator> logger)
+    :this(options.Value)
+    {
+        Logger = logger;
+    }
+    
     public CachedUidGenerator(CachedUidGeneratorOptions options) : base(options)
     {
         if (options.RejectedPutBufferHandler == null)

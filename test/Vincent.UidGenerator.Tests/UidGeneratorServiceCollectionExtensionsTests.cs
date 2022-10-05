@@ -10,7 +10,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     public void ShouldBeSingletonServiceOfDefaultUidGenerator()
     {
         var services = new ServiceCollection();
-        services.AddDefaultUidGeneratorService();
+        services.AddDefaultUidGeneratorService(options => {});
         var defaultUidGeneratorService =
             services.FirstOrDefault(service => service.ServiceType == typeof(IUidGenerator));
 
@@ -22,7 +22,8 @@ public class UidGeneratorServiceCollectionExtensionsTests
     public void ShouldBeGetUidNormallyWithDefaultUidGenerator()
     {
         var services = new ServiceCollection();
-        services.AddDefaultUidGeneratorService();
+        services.AddLogging();
+        services.AddDefaultUidGeneratorService(options=> {  });
 
         var provider = services.BuildServiceProvider();
         var uidGenerator = provider.GetRequiredService<IUidGenerator>();
@@ -34,7 +35,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     {
         var services = (ServiceCollection) null;
 
-        Should.Throw<ArgumentNullException>(() => services.AddDefaultUidGeneratorService());
+        Should.Throw<ArgumentNullException>(() => services.AddDefaultUidGeneratorService(options=>{}));
     }
 
     [Test]
