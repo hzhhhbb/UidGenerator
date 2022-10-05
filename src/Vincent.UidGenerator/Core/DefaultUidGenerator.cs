@@ -9,7 +9,7 @@ public class DefaultUidGenerator : IUidGenerator
     private static readonly object _lock = new object();
     private readonly DefaultUidGeneratorOptions _options;
     protected readonly BitsAllocator BitsAllocator;
-    protected long WorkerId;
+    protected readonly long WorkerId;
     private long _lastSecond = -1L;
     private long _sequence;
     protected readonly long StartSeconds;

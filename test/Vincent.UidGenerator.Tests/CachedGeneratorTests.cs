@@ -16,7 +16,7 @@ public class CachedGeneratorTests
     [SetUp]
     public void Setup()
     {
-        SIZE = 81 * 10000; 
+        SIZE = 700 * 10000; 
         _cachedUidGeneratorOptions = new CachedUidGeneratorOptions();
         _cachedUidGeneratorOptions.BoostPower = 3;
         uidGenerator = new CachedUidGenerator(_cachedUidGeneratorOptions);

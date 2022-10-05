@@ -14,6 +14,7 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
     private readonly RingBuffer _ringBuffer;
 
     private readonly BufferPaddingExecutor _bufferPaddingExecutor;
+    private readonly int _paddingThreshold;
 
     public CachedUidGenerator(CachedUidGeneratorOptions options) : base(options)
     {
@@ -34,13 +35,14 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
 
         // initialize RingBuffer
         int bufferSize = ((int) BitsAllocator.MaxSequence + 1) << options.BoostPower;
+        _paddingThreshold  = bufferSize * options.PaddingFactor / 100;
 
         _ringBuffer = new RingBuffer(bufferSize, options.PaddingFactor, options.RejectedPutBufferHandler,
             options.RejectedTakeBufferHandler);
+        
         _bufferPaddingExecutor = new BufferPaddingExecutor(_ringBuffer, nextIdsForOneSecond, options.UseScheduler,
             options.ScheduleInterval);
-        _ringBuffer.SetBufferPaddingExecutor(_bufferPaddingExecutor);
-
+        
         // fill in all slots of the RingBuffer
         _bufferPaddingExecutor.PaddingBuffer();
 
@@ -52,6 +54,14 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
     {
         try
         {
+            if (_ringBuffer.Count < _paddingThreshold)
+            {
+#if DEBUG
+                Logger.LogInformation(
+                    $"Reach the padding threshold:{_paddingThreshold}. ringBuffer count: {_ringBuffer.Count}");
+#endif
+                _bufferPaddingExecutor.PaddingBufferAsync();
+            }
             return _ringBuffer.Take();
         }
         catch (System.Exception e)

@@ -47,8 +47,7 @@ Tail 指针、Cursor 指针用于环形数组上读写 slot：
 
 CachedUidGenerator 采用了双 RingBuffer，Uid-RingBuffer 用于存储 Uid、Flag-RingBuffer 用于存储 Uid 状态(是否可填充、是否可消费)
 
-由于数组元素在内存中是连续分配的，可最大程度利用 CPU cache 以提升性能。但同时会带来「伪共享」FalseSharing 问题，为此在Tail、Cursor 指针、Flag-RingBuffer 中采用了 CacheLine
-补齐方式。
+由于数组元素在内存中是连续分配的，可最大程度利用 CPU cache 以提升性能。但同时会带来「伪共享」FalseSharing 问题，为此在Tail、Cursor 指针、Flag-RingBuffer 中采用了 CacheLine 补齐方式。
 
 ![FalseSharing](./doc/cacheline_padding.png) 
 
@@ -136,7 +135,10 @@ public class DefaultUidGeneratorOptions
 }
 ```
 
-#### CachedUidGenerator 配置，基础配置继承于 DefaultUidGenerator
+#### CachedUidGenerator 配置
+
+继承 DefaultUidGenerator
+
 ```c#
 public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
 {

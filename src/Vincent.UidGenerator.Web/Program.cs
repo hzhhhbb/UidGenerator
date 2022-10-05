@@ -1,4 +1,5 @@
 
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Vincent.UidGenerator;
 using Vincent.UidGenerator.Worker;
@@ -16,6 +17,7 @@ builder.Services.AddCachedUidGeneratorService(AssignWorkIdScheme.MySql, connecti
 //builder.Services.AddDefaultUidGeneratorService();
 builder.Services.AddHealthChecks();
 var app = builder.Build();
+var buffer = new ConcurrentQueue<long>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

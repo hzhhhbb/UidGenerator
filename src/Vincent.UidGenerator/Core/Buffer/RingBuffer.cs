@@ -9,10 +9,10 @@ public class RingBuffer
 {
     private ILogger<RingBuffer> _logger;
 
-    private static readonly int StartPoint = -1;
+    private const int StartPoint = -1;
 
-    private readonly long CanPutFlag = 0L;
-    private readonly long CanTakeFlag = 1L;
+    private const long CanPutFlag = 0L;
+    private const long CanTakeFlag = 1L;
 
     /** The size of RingBuffer's slots, each slot hold a UID */
     private readonly int _bufferSize;
@@ -21,22 +21,35 @@ public class RingBuffer
     private readonly long[] _slots;
     private readonly AtomicLong[] _flags;
 
-    /** Tail: last position sequence to produce */
-    private readonly AtomicLong _tail = new PaddedAtomicLong(StartPoint);
+    /// <summary>
+    /// last position sequence to produce
+    /// </summary>
+    public readonly AtomicLong _tail = new PaddedAtomicLong(StartPoint);
 
-    /** Cursor: current position sequence to consume */
-    private readonly AtomicLong _cursor = new PaddedAtomicLong(StartPoint);
+    /// <summary>
+    /// current position sequence to consume
+    /// </summary>
+    public readonly AtomicLong _cursor = new PaddedAtomicLong(StartPoint);
 
-    /** Threshold for trigger padding buffer*/
+    /// <summary>
+    /// Count of currently available elements
+    /// </summary>
+    public long Count => _tail.Get() - _cursor.Get();
+
+    /// <summary>
+    /// Threshold for trigger padding buffer
+    /// </summary>
     private readonly int _paddingThreshold;
 
-    /** Reject put/take buffer handle policy */
+    /// <summary>
+    /// Reject put buffer handle policy
+    /// </summary>
     private readonly Action<RingBuffer, long> _rejectedPutHandler;
 
+    /// <summary>
+    /// Reject take buffer handle policy
+    /// </summary>
     private readonly Action<RingBuffer> _rejectedTakeHandler;
-
-    /** Executor of padding buffer */
-    private BufferPaddingExecutor _bufferPaddingExecutor;
 
     private readonly object _syncLock = new object();
     
@@ -48,8 +61,8 @@ public class RingBuffer
     ///       Sample: paddingFactor=20, bufferSize=1000 -> threshold=1000 * 20 /100,  
     ///    padding buffer will be triggered when tail-cursor<threshold</param>
     /// <exception cref="ArgumentException"></exception>
-    public RingBuffer(int bufferSize, int paddingFactor, Action<RingBuffer, long> rejectedPutBufferHandler=null,
-        Action<RingBuffer> rejectedTakeBufferHandler=null)
+    public RingBuffer(int bufferSize, int paddingFactor, Action<RingBuffer, long> rejectedPutBufferHandler,
+        Action<RingBuffer> rejectedTakeBufferHandler)
     {
         // check buffer size is positive & a power of 2; padding factor in (0, 100)
         if (bufferSize <= 0L)
@@ -84,7 +97,7 @@ public class RingBuffer
 
     /// <summary>
     /// Put an UID in the ring & tail moved
-    /// We use 'synchronized' to guarantee the UID fill in slot & publish new tail sequence as atomic operations
+    /// We use 'lock' to guarantee the UID fill in slot & publish new tail sequence as atomic operations
     /// </summary>
     /// <remarks>
     /// Note that: It is recommended to put UID in a serialize way, cause we once batch generate a series UIDs and put
@@ -108,7 +121,7 @@ public class RingBuffer
             }
 
             // 1. pre-check whether the flag is CAN_PUT_FLAG
-            int nextTailIndex = CalSlotIndex(currentTail + 1);
+            int nextTailIndex = CalculateSlotIndex(currentTail + 1);
             if (_flags[nextTailIndex] != CanPutFlag)
             {
                 _rejectedPutHandler(this, uid);
@@ -144,7 +157,6 @@ public class RingBuffer
         // spin get next available cursor
         long currentCursor = _cursor;
 
-        //long nextCursor = cursor.updateAndGet(old -> old == tail.get() ? old : old + 1);
         long nextCursor = _cursor.UpdateAndGet(old => old == _tail.Get() ? old : old + 1);
 
         // check for safety consideration, it never occurs
@@ -152,20 +164,7 @@ public class RingBuffer
         {
             throw new UidGenerateException("Cursor can't move back");
         }
-        //Assert.isTrue(nextCursor >= currentCursor, "Curosr can't move back");
-
-        // trigger padding in an async-mode if reach the threshold
-        long currentTail = _tail.Get();
-        if (currentTail - nextCursor < _paddingThreshold)
-        {
-#if DEBUG
-            _logger.LogInformation(
-                $"Reach the padding threshold:{_paddingThreshold}. tail:{currentTail}, cursor:{nextCursor}, rest:{currentTail - nextCursor}");
-#endif
-
-            _bufferPaddingExecutor.PaddingBufferAsync();
-        }
-
+        
         // cursor catch the tail, means that there is no more available UID to take
         if (nextCursor == currentCursor)
         {
@@ -173,14 +172,12 @@ public class RingBuffer
         }
 
         // 1. check next slot flag is CAN_TAKE_FLAG
-        int nextCursorIndex = CalSlotIndex(nextCursor);
+        int nextCursorIndex = CalculateSlotIndex(nextCursor);
         if (_flags[nextCursorIndex].Get() != CanTakeFlag)
         {
             throw new UidGenerateException("Cursor not in can take status");
         }
-
-        //Assert.isTrue(flags[nextCursorIndex].get() == CAN_TAKE_FLAG, "Curosr not in can take status");
-
+        
         // 2. get UID from next slot
         // 3. set next slot flag as CAN_PUT_FLAG.
         long uid = _slots[nextCursorIndex];
@@ -196,7 +193,7 @@ public class RingBuffer
     /// </summary>
     /// <param name="sequence"></param>
     /// <returns></returns>
-    protected int CalSlotIndex(long sequence)
+    protected int CalculateSlotIndex(long sequence)
     {
         return (int) (sequence & _indexMask);
     }
@@ -217,13 +214,5 @@ public class RingBuffer
 
         return flags;
     }
-
-    /// <summary>
-    /// 因为 <see cref="RingBuffer"/> 和 <see cref="BufferPaddingExecutor"/> 互相依赖，使用此方法代替构造函数
-    /// </summary>
-    /// <param name="bufferPaddingExecutor"></param>
-    public void SetBufferPaddingExecutor(BufferPaddingExecutor bufferPaddingExecutor)
-    {
-        _bufferPaddingExecutor = bufferPaddingExecutor;
-    }
+    
 }
