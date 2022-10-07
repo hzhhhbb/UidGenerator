@@ -6,12 +6,17 @@ namespace Vincent.UidGenerator.Worker;
 public enum AssignWorkIdScheme
 {
     /// <summary>
-    /// SqlServer 数据库
+    /// use SqlServer to assign workerId
     /// </summary>
     SqlServer = 1,
 
     /// <summary>
-    /// MySql 数据库
+    /// use MySQL to assign workerId
     /// </summary>
-    MySql = 2
+    MySQL = 2,
+
+    /// <summary>
+    /// Single machine
+    /// </summary>
+    SingleMachine = 3
 }

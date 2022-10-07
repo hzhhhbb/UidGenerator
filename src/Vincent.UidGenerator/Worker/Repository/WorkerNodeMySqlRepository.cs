@@ -1,27 +1,48 @@
 using System;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using Vincent.UidGenerator.Worker.Entity;
 
 namespace Vincent.UidGenerator.Worker.Repository;
 
-internal class WorkerNodeMySqlRepository:IWorkerNodeRepository
+internal class WorkerNodeMySqlRepository : IWorkerNodeRepository
 {
-    public long GetWorkNodeId(string connectionString,WorkerNodeEntity workerNodeEntity)
+    private readonly WorkerOptions _options;
+
+    public WorkerNodeMySqlRepository(IOptions<WorkerOptions> options):this(options.Value)
     {
-        using  MySqlConnection connection = new MySqlConnection(connectionString);
-         connection.Open();
+    }
+    
+    public WorkerNodeMySqlRepository(WorkerOptions options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ConnectionString))
+        {
+            throw new ArgumentNullException(nameof(options.ConnectionString));
+        }
         
-        using var command = connection.CreateCommand();
-        command.CommandText = EntityToSql(workerNodeEntity);
-        
-        var workId =  command.ExecuteScalar();
-        return (long)(ulong)workId;
+        _options = options;
     }
 
-    public string EntityToSql(WorkerNodeEntity workerNodeEntity)
+    public long GetWorkNodeId( WorkerNodeEntity workerNodeEntity)
     {
-        return $"insert into UidWorkerNode (HostName, Ip, Type) VALUE ('{workerNodeEntity.HostName}','{workerNodeEntity.Ip}',{(int)workerNodeEntity.Type});select last_insert_id();";
+        using MySqlConnection connection = new MySqlConnection(_options.ConnectionString);
+        connection.Open();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = EntityToSql(workerNodeEntity);
+
+        var workId = command.ExecuteScalar();
+        return (long) (ulong) workId;
+    }
+
+    private string EntityToSql(WorkerNodeEntity workerNodeEntity)
+    {
+        return
+            $"insert into UidWorkerNode (HostName, Ip, Type) VALUE ('{workerNodeEntity.HostName}','{workerNodeEntity.Ip}',{(int) workerNodeEntity.Type});select last_insert_id();";
     }
 }

@@ -1,6 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
 using Vincent.UidGenerator;
 using Vincent.UidGenerator.Core;
 using Vincent.UidGenerator.Worker;
@@ -17,7 +15,7 @@ public static class UidGeneratorServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="options"> Configure generator options </param>
     /// <returns>A <see cref="IServiceCollection"/></returns>
-    public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
+    public static IServiceCollection AddDefaultUidGenerator(this IServiceCollection services,
         Action<DefaultUidGeneratorOptions> options)
     {
         if (services == null)
@@ -37,29 +35,56 @@ public static class UidGeneratorServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers services required by DefaultUidGenerator services with DB
-    /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="connectionString">DB connection string, depends on <see cref="AssignWorkIdScheme"/></param>
-    /// <param name="options"></param>
-    /// <param name="assignWorkIdScheme">SQLService or MySQL</param>
-    /// <returns>A <see cref="IServiceCollection"/>return <see cref="services"/></returns>
-    public static IServiceCollection AddDefaultUidGeneratorService(this IServiceCollection services,
-        AssignWorkIdScheme assignWorkIdScheme,
-        string connectionString,
-        Action<DefaultUidGeneratorOptions> options)
+   
+    public static IServiceCollection AddSQLServerWorker(this IServiceCollection services ,string connectionString)
     {
-        var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
-
-        options = (option) =>
+        if (services == null)
         {
-            options.Invoke(option);
-            option.WorkerId = workerId;
-        };
-        
-        return services.AddDefaultUidGeneratorService(options);
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException(nameof(connectionString));
+        }
+        services.Configure<WorkerOptions>(options => options.ConnectionString = connectionString);
+        services.AddTransient<IWorkerNodeRepository, WorkerNodeSqlServerRepository>();
+        services.AddWorkerIdAssignerServices();
+
+        return services;
     }
+    
+    public static IServiceCollection AddMySQLWorker(this IServiceCollection services ,string connectionString)
+    {
+        if (services == null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException(nameof(connectionString));
+        }
+        services.Configure<WorkerOptions>(options => options.ConnectionString = connectionString);
+        services.AddTransient<IWorkerNodeRepository, WorkerNodeMySqlRepository>();
+        services.AddWorkerIdAssignerServices();
+
+        return services;
+    }
+    
+    public static IServiceCollection AddSingleMachineWorker(this IServiceCollection services)
+    {
+        if (services == null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+        
+        services.AddTransient<IWorkerNodeRepository, WorkerNodeSingleMachineRepository>();
+        services.AddWorkerIdAssignerServices();
+
+        return services;
+    }
+
     
     /// <summary>
     /// Registers services required by DefaultUidGenerator services.
@@ -67,7 +92,7 @@ public static class UidGeneratorServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="options"> Configure generator options </param>
     /// <returns>A <see cref="IServiceCollection"/></returns>
-    public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
+    public static IServiceCollection AddCachedUidGenerator(this IServiceCollection services,
         Action<CachedUidGeneratorOptions> options)
     {
         if (services == null)
@@ -86,40 +111,11 @@ public static class UidGeneratorServiceCollectionExtensions
 
         return services;
     }
-    
-    /// <summary>
-    /// Registers services required by CachedUidGenerator services with MySQL
-    /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="connectionString">DB connection string, depends on <see cref="AssignWorkIdScheme"/></param>
-    /// <param name="options"></param>
-    /// <param name="assignWorkIdScheme">SQLService or MySQL for now</param>
-    /// <returns>A <see cref="IServiceCollection"/>return <see cref="services"/></returns>
-    public static IServiceCollection AddCachedUidGeneratorService(this IServiceCollection services,
-        AssignWorkIdScheme assignWorkIdScheme,
-        string connectionString,
-        Action<CachedUidGeneratorOptions> options = null)
+
+    private static IServiceCollection AddWorkerIdAssignerServices(this IServiceCollection services)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        services.AddTransient<IWorkerIdAssigner, WorkerIdAssigner>();
         
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new ArgumentNullException(nameof(connectionString));
-        }
-        
-        var workerId = WorkerIdAssigner.AssignWorkerId(connectionString, assignWorkIdScheme);
-        
-        options = (option) =>
-        {
-            options.Invoke(option);
-            option.WorkerId = workerId;
-        };
-
-        services.AddSingleton<IUidGenerator,CachedUidGenerator>();
-
         return services;
     }
     

@@ -10,7 +10,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     public void ShouldBeSingletonServiceOfDefaultUidGenerator()
     {
         var services = new ServiceCollection();
-        services.AddDefaultUidGeneratorService(options => {});
+        services.AddDefaultUidGenerator(options => {});
         var defaultUidGeneratorService =
             services.FirstOrDefault(service => service.ServiceType == typeof(IUidGenerator));
 
@@ -23,7 +23,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDefaultUidGeneratorService(options=> {  });
+        services.AddDefaultUidGenerator(options=> {  }).AddSingleMachineWorker().AddLogging();
 
         var provider = services.BuildServiceProvider();
         var uidGenerator = provider.GetRequiredService<IUidGenerator>();
@@ -35,7 +35,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     {
         var services = (ServiceCollection) null;
 
-        Should.Throw<ArgumentNullException>(() => services.AddDefaultUidGeneratorService(options=>{}));
+        Should.Throw<ArgumentNullException>(() => services.AddDefaultUidGenerator(options=>{}));
     }
 
     [Test]
@@ -43,7 +43,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     {
         var services = (ServiceCollection) null;
 
-        Should.Throw<ArgumentNullException>(() => services.AddCachedUidGeneratorService(AssignWorkIdScheme.MySql,"11"));
+        Should.Throw<ArgumentNullException>(() => services.AddCachedUidGenerator(options => { }));
     }
     
     [Test]
@@ -51,7 +51,7 @@ public class UidGeneratorServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        Should.Throw<ArgumentNullException>(() => services.AddCachedUidGeneratorService(AssignWorkIdScheme.MySql,""));
+        Should.Throw<ArgumentNullException>(() => services.AddSQLServerWorker(""));
     }
     
 }

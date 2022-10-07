@@ -26,10 +26,4 @@ public class DefaultUidGeneratorOptions
     /// start worker utc dateTime. default 2022-09-06 01:01:01
     /// </summary>
     public DateTime StartTime { get; set; } = new DateTime(2022, 09, 06, 00, 00, 00);
-
-    /// <summary>
-    /// 机器Id
-    /// <remarks>默认为 1024 + 17 ，预留1024个机器位</remarks>
-    /// </summary>
-    internal long WorkerId { get; set; } = 1024 + 17;
 }

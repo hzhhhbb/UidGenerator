@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vincent.UidGenerator.Core.Buffer;
 using Vincent.UidGenerator.Exception;
+using Vincent.UidGenerator.Worker;
 
 namespace Vincent.UidGenerator.Core;
 
@@ -17,13 +18,15 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
     private readonly BufferPaddingExecutor _bufferPaddingExecutor;
     private readonly int _paddingThreshold;
 
-    public CachedUidGenerator(IOptions<CachedUidGeneratorOptions> options, ILogger<CachedUidGenerator> logger)
-    :this(options.Value)
+    public CachedUidGenerator(IOptions<CachedUidGeneratorOptions> options, ILogger<CachedUidGenerator> logger,
+        IWorkerIdAssigner workerIdAssigner)
+        : this(options.Value, workerIdAssigner)
     {
         Logger = logger;
     }
-    
-    public CachedUidGenerator(CachedUidGeneratorOptions options) : base(options)
+
+    public CachedUidGenerator(CachedUidGeneratorOptions options, IWorkerIdAssigner workerIdAssigner) : base(options,
+        workerIdAssigner)
     {
         if (options.RejectedPutBufferHandler == null)
         {
@@ -42,14 +45,14 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
 
         // initialize RingBuffer
         int bufferSize = ((int) BitsAllocator.MaxSequence + 1) << options.BoostPower;
-        _paddingThreshold  = bufferSize * options.PaddingFactor / 100;
+        _paddingThreshold = bufferSize * options.PaddingFactor / 100;
 
         _ringBuffer = new RingBuffer(bufferSize, options.PaddingFactor, options.RejectedPutBufferHandler,
             options.RejectedTakeBufferHandler);
-        
+
         _bufferPaddingExecutor = new BufferPaddingExecutor(_ringBuffer, nextIdsForOneSecond, options.UseScheduler,
             options.ScheduleInterval);
-        
+
         // fill in all slots of the RingBuffer
         _bufferPaddingExecutor.PaddingBuffer();
 
@@ -69,6 +72,7 @@ public class CachedUidGenerator : DefaultUidGenerator, IDisposable
 #endif
                 _bufferPaddingExecutor.PaddingBufferAsync();
             }
+
             return _ringBuffer.Take();
         }
         catch (System.Exception e)

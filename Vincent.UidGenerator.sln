@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vincent.UidGenerator.Web", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vincent.UidGenerator.Tests", "test\Vincent.UidGenerator.Tests\Vincent.UidGenerator.Tests.csproj", "{01688706-3497-4F9D-8305-54263BCC5D9D}"
 EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{CA178AB5-A290-4273-9478-CFD476D88ECB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{01688706-3497-4F9D-8305-54263BCC5D9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{01688706-3497-4F9D-8305-54263BCC5D9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{01688706-3497-4F9D-8305-54263BCC5D9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA178AB5-A290-4273-9478-CFD476D88ECB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA178AB5-A290-4273-9478-CFD476D88ECB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA178AB5-A290-4273-9478-CFD476D88ECB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA178AB5-A290-4273-9478-CFD476D88ECB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

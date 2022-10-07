@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vincent.UidGenerator.Exception;
+using Vincent.UidGenerator.Worker;
 
 namespace Vincent.UidGenerator.Core;
 
@@ -23,18 +24,18 @@ public class DefaultUidGenerator : IUidGenerator
     
     protected ILogger<DefaultUidGenerator> Logger;
 
-    public DefaultUidGenerator(IOptions<DefaultUidGeneratorOptions> options, ILogger<DefaultUidGenerator> logger)
-        : this(options.Value)
+    public DefaultUidGenerator(IOptions<DefaultUidGeneratorOptions> options, ILogger<DefaultUidGenerator> logger,IWorkerIdAssigner workerIdAssigner)
+        : this(options.Value,workerIdAssigner)
     {
         Logger = logger;
     }
     
-    public DefaultUidGenerator(DefaultUidGeneratorOptions options)
+    public DefaultUidGenerator(DefaultUidGeneratorOptions options,IWorkerIdAssigner workerIdAssigner)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         using var loggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
         Logger = loggerFactory.CreateLogger<DefaultUidGenerator>();
-        WorkerId = options.WorkerId;
+        WorkerId = workerIdAssigner.AssignWorkerId();
         BitsAllocator = new BitsAllocator(_options.TimeBits, _options.WorkerBits, _options.SequenceBits);
         if ( WorkerId  > BitsAllocator.MaxWorkerId)
         {

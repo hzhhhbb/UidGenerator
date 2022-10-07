@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Vincent.UidGenerator.Core;
 using Vincent.UidGenerator.Utils;
@@ -7,7 +8,7 @@ namespace Vincent.UidGenerator.Tests;
 
 public class CachedGeneratorWithSchedulerTests
 {
-    private long SIZE; 
+    private long SIZE;
     private IUidGenerator uidGenerator;
     private CachedUidGeneratorOptions _cachedUidGeneratorOptions;
     private bool VERBOSE = false;
@@ -16,12 +17,17 @@ public class CachedGeneratorWithSchedulerTests
     [SetUp]
     public void Setup()
     {
-        SIZE = 81 * 10000; 
-        _cachedUidGeneratorOptions = new CachedUidGeneratorOptions();
-        _cachedUidGeneratorOptions.UseScheduler = true;
-        _cachedUidGeneratorOptions.ScheduleInterval = 1;
-        _cachedUidGeneratorOptions.BoostPower = 3;
-        uidGenerator = new CachedUidGenerator(_cachedUidGeneratorOptions);
+        SIZE = 81 * 10000;
+
+        var services = new ServiceCollection();
+        services.AddCachedUidGenerator(options =>
+        {
+            options.UseScheduler = true;
+            options.ScheduleInterval = 1;
+        }).AddSingleMachineWorker().AddLogging();
+        using var servicesProvider = services.BuildServiceProvider();
+
+        uidGenerator = servicesProvider.GetRequiredService<IUidGenerator>();
     }
 
     [Test]
@@ -37,7 +43,7 @@ public class CachedGeneratorWithSchedulerTests
         // Check UIDs are all unique
         CheckUniqueId(uidSet);
     }
-    
+
     /// <summary>
     /// Test for parallel generate
     /// </summary>
@@ -51,12 +57,12 @@ public class CachedGeneratorWithSchedulerTests
         List<Task> tasks = new List<Task>(THREADS);
         for (int i = 0; i < THREADS; i++)
         {
-            tasks.Add( Task.Factory.StartNew(() => workerRun(uidSet, control)));
+            tasks.Add(Task.Factory.StartNew(() => workerRun(uidSet, control)));
         }
 
         // Wait for worker done
         Task.WaitAll(tasks.ToArray());
-        
+
         control.Get().ShouldBeEquivalentTo(SIZE);
         // Check UIDs are all unique
         CheckUniqueId(uidSet);
@@ -108,6 +114,6 @@ public class CachedGeneratorWithSchedulerTests
     private void CheckUniqueId(ConcurrentDictionary<long, byte> uidSet)
     {
         Console.WriteLine(uidSet.Count);
-        uidSet.Count.ShouldBeEquivalentTo((int)SIZE);
+        uidSet.Count.ShouldBeEquivalentTo((int) SIZE);
     }
 }

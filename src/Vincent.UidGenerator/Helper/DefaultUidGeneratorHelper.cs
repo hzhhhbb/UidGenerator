@@ -6,25 +6,11 @@ namespace Vincent.UidGenerator.Helper;
 
 public static class DefaultUidGeneratorHelper
 {
-    private static DefaultUidGenerator _uidGenerator;
+    private static IUidGenerator _uidGenerator;
 
     private  static object _lock = new object();
     
-    public static void Init(DefaultUidGeneratorOptions options)
-    {
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
-        if (_uidGenerator != null) return;
-        
-        lock (_lock)
-        {
-            _uidGenerator ??= new DefaultUidGenerator(options);
-        }
-    }
-    
-    public static void Init(AssignWorkIdScheme assignWorkIdScheme,string connectionString,DefaultUidGeneratorOptions options)
+    public static void InitWithSQLServerWorker(string connectionString,Action<DefaultUidGeneratorOptions> options)
     {
         if (options == null)
         {
@@ -45,9 +31,60 @@ public static class DefaultUidGeneratorHelper
         {
             if (_uidGenerator == null)
             {
-                var workerId= WorkerIdAssigner.AssignWorkerId(connectionString,assignWorkIdScheme);
-                options.WorkerId = workerId;
-                _uidGenerator = new DefaultUidGenerator(options);
+                var defaultOptions = new DefaultUidGeneratorOptions();
+                options(defaultOptions);
+                _uidGenerator = new DefaultUidGenerator(defaultOptions,UidGeneratorBaseHelper.BuildWorkerIdAssignerWithSQLServer(connectionString));
+            }
+        }
+    }
+ 
+    public static void InitWithMySQLWorker(string connectionString,Action<DefaultUidGeneratorOptions> options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException(nameof(connectionString));
+        }
+        
+        if (_uidGenerator != null)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (_uidGenerator == null)
+            {
+                var defaultOptions = new DefaultUidGeneratorOptions();
+                options(defaultOptions);
+                _uidGenerator = new DefaultUidGenerator(defaultOptions,UidGeneratorBaseHelper.BuildWorkerIdAssignerWithMySQL(connectionString));
+            }
+        }
+    }
+
+    public static void InitWithSingleMachineWorker(Action<DefaultUidGeneratorOptions> options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        if (_uidGenerator != null)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (_uidGenerator == null)
+            {
+                var defaultOptions = new DefaultUidGeneratorOptions();
+                options(defaultOptions);
+                _uidGenerator = new DefaultUidGenerator(defaultOptions,UidGeneratorBaseHelper.BuildWorkerIdAssignerWithSingleMachine());
             }
         }
     }

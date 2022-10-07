@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Vincent.UidGenerator.Core;
 using Vincent.UidGenerator.Utils;
@@ -9,7 +10,6 @@ public class DefaultGeneratorTests
 {
     private long SIZE;
     private IUidGenerator uidGenerator;
-    private DefaultUidGeneratorOptions _defaultUidGeneratorOptions;
     private bool VERBOSE = true;
     private int THREADS = Environment.ProcessorCount << 1;
 
@@ -17,8 +17,10 @@ public class DefaultGeneratorTests
     public void Setup()
     {
         SIZE = 1 * 1000;
-        _defaultUidGeneratorOptions = new DefaultUidGeneratorOptions();
-        uidGenerator = new DefaultUidGenerator(_defaultUidGeneratorOptions);
+        var services = new ServiceCollection();
+        services.AddDefaultUidGenerator(options => { }).AddSingleMachineWorker().AddLogging();
+        using var servicesProvider = services.BuildServiceProvider();
+        uidGenerator = servicesProvider.GetRequiredService<IUidGenerator>();
     }
 
     [Test]
@@ -43,7 +45,7 @@ public class DefaultGeneratorTests
     {
         AtomicLong control = new AtomicLong(-1L);
         var uidSet = new ConcurrentDictionary<long, byte>();
-        
+
         // Initialize threads
         List<Task> tasks = new List<Task>(THREADS);
 
@@ -54,7 +56,7 @@ public class DefaultGeneratorTests
 
         // Wait for worker done
         Task.WaitAll(tasks.ToArray());
-        
+
         // Check generate 700w times
         control.Get().ShouldBeEquivalentTo(SIZE);
 

@@ -1,18 +1,22 @@
-
-using System.Threading.Tasks;
 using Vincent.UidGenerator.Utils;
 using Vincent.UidGenerator.Worker.Entity;
 using Vincent.UidGenerator.Worker.Repository;
 
 namespace Vincent.UidGenerator.Worker;
 
-public static class WorkerIdAssigner 
+public class WorkerIdAssigner : IWorkerIdAssigner
 {
-    public static long AssignWorkerId(string connectionString,AssignWorkIdScheme assignWorkIdScheme)
+    private readonly IWorkerNodeRepository _workerNodeRepository;
+
+    public WorkerIdAssigner(IWorkerNodeRepository workerNodeRepository)
     {
-        var workerNodeRepository = WorkerNodeRepositoryFactory.Build(assignWorkIdScheme);
+        _workerNodeRepository = workerNodeRepository;
+    }
+
+    public long AssignWorkerId()
+    {
         var workerNodeEntity = BuildWorkerNode();
-        return  workerNodeRepository.GetWorkNodeId(connectionString,workerNodeEntity);
+        return _workerNodeRepository.GetWorkNodeId(workerNodeEntity);
     }
 
     /// <summary>

@@ -8,13 +8,13 @@ public class DefaultUidGeneratorHelperTests
     [Test]
     public void ShouldBeGetUidNormally()
     {
-        DefaultUidGeneratorHelper.Init(new DefaultUidGeneratorOptions());
+        DefaultUidGeneratorHelper.InitWithSingleMachineWorker(options=>{});
         DefaultUidGeneratorHelper.GetUid().ShouldBePositive();
     }
     
     [Test]
     public void ShouldBeThrowExceptionWhenOptionsIsNull()
     {
-        Should.Throw<ArgumentException>(() => DefaultUidGeneratorHelper.Init(null));
+        Should.Throw<ArgumentException>(() => DefaultUidGeneratorHelper.InitWithSingleMachineWorker(null));
     }
 }
