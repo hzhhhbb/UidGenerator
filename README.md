@@ -11,7 +11,7 @@ UidGenerator 是 C# 实现的, 基于 [Snowflake](https://github.com/twitter/sno
 
 Snowflake算法
 -------------
-![Snowflake](./doc/snowflake.png)  
+![Snowflake](doc/snowflake.png)  
 Snowflake 算法描述：指定机器 & 同一时刻 & 某一并发序列，是唯一的。据此可生成一个64 bits的唯一ID（long)。默认采用上图字节分配方式：
 
 * sign(1bit)  
@@ -43,13 +43,13 @@ Tail 指针、Cursor 指针用于环形数组上读写 slot：
 * Cursor 指针  
   表示 Consumer 消费到的最小序号(序号序列与 Producer 序列相同)。Cursor 不能超过 Tail，即不能消费未生产的 slot。当Cursor已赶上 tail，此时可通过```rejectedTakeBufferHandler```指定 TakeRejectPolicy
 
-![RingBuffer](./doc/ringbuffer.png)  
+![RingBuffer](doc/ringbuffer.png)  
 
 CachedUidGenerator 采用了双 RingBuffer，Uid-RingBuffer 用于存储 Uid、Flag-RingBuffer 用于存储 Uid 状态(是否可填充、是否可消费)
 
 由于数组元素在内存中是连续分配的，可最大程度利用 CPU cache 以提升性能。但同时会带来「伪共享」FalseSharing 问题，为此在Tail、Cursor 指针、Flag-RingBuffer 中采用了 CacheLine 补齐方式。
 
-![FalseSharing](./doc/cacheline_padding.png) 
+![FalseSharing](doc/cacheline_padding.png) 
 
 #### RingBuffer 填充时机 ####
 * 初始化预填充  
@@ -70,9 +70,35 @@ Quick Start
 ### 步骤1: 安装依赖
 先下载  [.NET Framework](https://dotnet.microsoft.com/en-us/download/dotnet-framework)/[.NET Core](https://dotnet.microsoft.com/en-us/download/dotnet)、[SQLServer](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)/[MySQL](https://dev.mysql.com/downloads/mysql/)。如需运行示例项目，需要 [.NET 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) 及以上
 
-### 步骤2: 创建表 UidWorkerNode
+### 步骤2: 运行示例单测
+
+运行单测 [CachedUidGeneratorTest](test/Vincent.UidGenerator.Tests/CachedGeneratorTests.cs), 展示UID生成、解析等功能
+
+```java
+[Test]
+public void ShouldBeGetUidNormallyWhenSerialized()
+{
+    // Generate UID serially
+    ConcurrentDictionary<long, byte> uidSet = new ConcurrentDictionary<long, byte>();
+    for (int i = 0; i < SIZE; i++)
+    {
+        DoGenerate(uidSet, i);
+    }
+    // Check UIDs are all unique
+    CheckUniqueId(uidSet);
+}
+```
+
+## 项目集成
+
+可通过以下步骤，集成到你的项目中
+
+### 步骤1: 创建表 UidWorkerNode
+
 运行 sql 脚本以导入表 UidWorkerNode , 脚本如下:
+
 #### SQLServer //todo
+
 ```sql
 create table UidWorkerNode
 (
@@ -84,7 +110,9 @@ create table UidWorkerNode
 );
 alter table UidWorkerNode auto_increment=1025;
 ```
+
 #### MySQL
+
 ```sql
 create table UidWorkerNode
 (
@@ -97,11 +125,48 @@ create table UidWorkerNode
 alter table UidWorkerNode auto_increment=1025;
 ```
 
-修改[mysql.properties](src/test/resources/uid/mysql.properties)配置中, jdbc.url, jdbc.username和jdbc.password, 确保库地址, 名称, 端口号, 用户名和密码正确.
+### 步骤2: 初始化和使用
 
-### 步骤3: 修改Spring配置
-提供了两种生成器: [DefaultUidGenerator](src/main/java/com/baidu/fsg/uid/impl/DefaultUidGenerator.java)、[CachedUidGenerator](src/main/java/com/baidu/fsg/uid/impl/CachedUidGenerator.java)。如对 UID 生成性能有要求, 请使用 CachedUidGenerator<br/>
-对应 Spring 配置分别为: [default-uid-spring.xml](src/test/resources/uid/default-uid-spring.xml)、[cached-uid-spring.xml](src/test/resources/uid/cached-uid-spring.xml)
+DefaultUidGenerator 和 CachedUidGenerator 的初始化/使用方式完全一致，以下只展示 CachedUidGenerator 的使用方式
+
+#### 静态类 CachedUidGeneratorHelper
+
+适合在 .NET Framework框架中使用。当然，也适用于 .NET Core 框架
+
+```c#
+[Test]
+public void ShouldBeGetUidNormally()
+{
+    CachedUidGeneratorHelper.InitWithSingleMachineWorker(options=>{});
+    CachedUidGeneratorHelper.GetUid().ShouldBePositive();
+}
+```
+
+详情见 [CachedUidGeneratorHelperTests.cs](test/Vincent.UidGenerator.Tests/Helper/CachedUidGeneratorHelperTests.cs)
+
+#### 扩展方法 AddCachedUidGenerator 
+
+适合在 .NET Core 框架中使用
+
+```c#
+[SetUp]
+public void Setup()
+{
+    SIZE = 81 * 10000;
+    var services = new ServiceCollection();
+    services.AddCachedUidGenerator(options => { }).AddSingleMachineWorker().AddLogging();
+    using var servicesProvider = services.BuildServiceProvider();
+    uidGenerator = servicesProvider.GetRequiredService<IUidGenerator>();
+}
+```
+
+详情见 [UidGeneratorServiceCollectionExtensionsTests.cs](test/Vincent.UidGenerator.Tests/UidGeneratorServiceCollectionExtensionsTests.cs)
+
+## 配置
+提供了两种生成器: [DefaultUidGenerator](src/Vincent.UidGenerator/Core/DefaultUidGenerator.cs)、[CachedUidGenerator](src/Vincent.UidGenerator/Core/CachedUidGenerator.cs)。如对 UID 生成性能有要求, 请使用 CachedUidGenerator
+对应配置分别为: [DefaultUidGeneratorOptions.cs](src/Vincent.UidGenerator/DefaultUidGeneratorOptions.cs)、[CachedUidGeneratorOptions.cs](src/Vincent.UidGenerator/CachedUidGeneratorOptions.cs)
+
+以下配置均可在初始化 UidGenerator 时进行修改
 
 #### DefaultUidGenerator 配置
 ```c#
@@ -137,7 +202,7 @@ public class DefaultUidGeneratorOptions
 
 #### CachedUidGenerator 配置
 
-继承 DefaultUidGenerator
+在 DefaultUidGenerator 的基础上新增了以下配置
 
 ```c#
 public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
@@ -182,83 +247,8 @@ public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
 }
 ```
 
-#### Mybatis配置
-[mybatis-spring.xml](src/test/resources/uid/mybatis-spring.xml)配置说明如下:
-
-```xml
-<!-- Spring annotation扫描 -->
-<context:component-scan base-package="com.baidu.fsg.uid" />
-
-<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
-    <property name="dataSource" ref="dataSource" />
-    <property name="mapperLocations" value="classpath:/META-INF/mybatis/mapper/M_WORKER*.xml" />
-</bean>
-
-<!-- 事务相关配置 -->
-<tx:annotation-driven transaction-manager="transactionManager" order="1" />
-
-<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-	<property name="dataSource" ref="dataSource" />
-</bean>
-
-<!-- Mybatis Mapper扫描 -->
-<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
-	<property name="annotationClass" value="org.springframework.stereotype.Repository" />
-	<property name="basePackage" value="com.baidu.fsg.uid.worker.dao" />
-	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
-</bean>
-
-<!-- 数据源配置 -->
-<bean id="dataSource" parent="abstractDataSource">
-	<property name="driverClassName" value="${mysql.driver}" />
-	<property name="maxActive" value="${jdbc.maxActive}" />
-	<property name="url" value="${jdbc.url}" />
-	<property name="username" value="${jdbc.username}" />
-	<property name="password" value="${jdbc.password}" />
-</bean>
-
-<bean id="abstractDataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
-	<property name="filters" value="${datasource.filters}" />
-	<property name="defaultAutoCommit" value="${datasource.defaultAutoCommit}" />
-	<property name="initialSize" value="${datasource.initialSize}" />
-	<property name="minIdle" value="${datasource.minIdle}" />
-	<property name="maxWait" value="${datasource.maxWait}" />
-	<property name="testWhileIdle" value="${datasource.testWhileIdle}" />
-	<property name="testOnBorrow" value="${datasource.testOnBorrow}" />
-	<property name="testOnReturn" value="${datasource.testOnReturn}" />
-	<property name="validationQuery" value="${datasource.validationQuery}" />
-	<property name="timeBetweenEvictionRunsMillis" value="${datasource.timeBetweenEvictionRunsMillis}" />
-	<property name="minEvictableIdleTimeMillis" value="${datasource.minEvictableIdleTimeMillis}" />
-	<property name="logAbandoned" value="${datasource.logAbandoned}" />
-	<property name="removeAbandoned" value="${datasource.removeAbandoned}" />
-	<property name="removeAbandonedTimeout" value="${datasource.removeAbandonedTimeout}" />
-</bean>
-
-<bean id="batchSqlSession" class="org.mybatis.spring.SqlSessionTemplate">
-	<constructor-arg index="0" ref="sqlSessionFactory" />
-	<constructor-arg index="1" value="BATCH" />
-</bean>
-```
-
-### 步骤4: 运行示例单测
-运行单测[CachedUidGeneratorTest](src/test/java/com/baidu/fsg/uid/CachedUidGeneratorTest.java), 展示UID生成、解析等功能
-```java
-@Resource
-private UidGenerator uidGenerator;
-
-@Test
-public void testSerialGenerate() {
-    // Generate UID
-    long uid = uidGenerator.getUID();
-
-    // Parse UID into [Timestamp, WorkerId, Sequence]
-    // {"UID":"180363646902239241","parsed":{    "timestamp":"2017-01-19 12:15:46",    "workerId":"4",    "sequence":"9"        }}
-    System.out.println(uidGenerator.parseUID(uid));
-
-}
-```
-
 ### 关于UID比特分配的建议
+
 对于并发数要求不高、期望长期使用的应用, 可增加```timeBits```位数, 减少```seqBits```位数. 例如节点采取用完即弃的WorkerIdAssigner策略, 重启频率为12次/天,
 那么配置成```{"workerBits":23,"timeBits":31,"seqBits":9}```时, 可支持28个节点以整体并发量14400 UID/s的速度持续运行68年.
 
@@ -266,8 +256,8 @@ public void testSerialGenerate() {
 那么配置成```{"workerBits":27,"timeBits":30,"seqBits":6}```时, 可支持37个节点以整体并发量2400 UID/s的速度持续运行34年.
 
 #### 吞吐量测试
-在MacBook Pro（2.7GHz Intel Core i5, 8G DDR3）上进行了 CachedUidGenerator（单实例）的UID吞吐量测试. <br/>
-首先固定住 workerBits 为任选一个值(如20), 分别统计timeBits变化时(如从25至32, 总时长分别对应1年和136年)的吞吐量, 如下表所示:<br/>
+在MacBook Pro（2.7GHz Intel Core i5, 8G DDR3）上进行了 CachedUidGenerator（单实例）的UID吞吐量测试. 
+首先固定住 workerBits 为任选一个值(如20), 分别统计timeBits变化时(如从25至32, 总时长分别对应1年和136年)的吞吐量, 如下表所示:
 
 |  timeBits  |    25     |    26     |    27     |    28     |    29     |    30     |    31     |    32     |
 | :--------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: |
@@ -285,7 +275,7 @@ public void testSerialGenerate() {
 
 由此可见, 不管如何配置, CachedUidGenerator 总能提供**600万/s**的稳定吞吐量, 只是使用年限会有所减少. 这真的是太棒了.
 
-最后, 固定住 workerBits 和 timeBits 位数(如23和31), 分别统计不同数目(如1至8,本机CPU核数为4)的UID使用者情况下的吞吐量,<br/>
+最后, 固定住 workerBits 和 timeBits 位数(如23和31), 分别统计不同数目(如1至8,本机CPU核数为4)的UID使用者情况下的吞吐量
 
 | workerBits |     1     |     2     |     3     |     4     |     5     |     6     |     7     |     8     |
 | :--------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: |

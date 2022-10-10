@@ -66,16 +66,11 @@ public static class CachedUidGeneratorHelper
         }
     }
 
-    public static void InitWithSingleMachineWorker(string connectionString,Action<CachedUidGeneratorOptions> options)
+    public static void InitWithSingleMachineWorker(Action<CachedUidGeneratorOptions> options)
     {
         if (options == null)
         {
             throw new ArgumentNullException(nameof(options));
-        }
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new ArgumentNullException(nameof(connectionString));
         }
         
         if (_uidGenerator != null)
