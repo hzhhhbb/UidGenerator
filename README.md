@@ -65,7 +65,7 @@ CachedUidGenerator 采用了双 RingBuffer，Uid-RingBuffer 用于存储 Uid、F
 Quick Start
 ------------
 
-这里介绍如何在项目中使用 UidGenerator , 具体流程如下:
+这里介绍如何使用本项目 , 具体流程如下:
 
 ### 步骤1: 安装依赖
 先下载  [.NET Framework](https://dotnet.microsoft.com/en-us/download/dotnet-framework)/[.NET Core](https://dotnet.microsoft.com/en-us/download/dotnet)、[SQLServer](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)/[MySQL](https://dev.mysql.com/downloads/mysql/)。如需运行示例项目，需要 [.NET 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) 及以上
@@ -127,11 +127,13 @@ alter table UidWorkerNode auto_increment=1025;
 
 ### 步骤2: 初始化和使用
 
-DefaultUidGenerator 和 CachedUidGenerator 的初始化/使用方式完全一致，以下只展示 CachedUidGenerator 的使用方式
+DefaultUidGenerator 和 CachedUidGenerator 的初始化/使用方式完全一致
+
+以下展示 CachedUidGenerator 的使用方式
 
 #### 静态类 CachedUidGeneratorHelper
 
-适合在 .NET Framework框架中使用。当然，也适用于 .NET Core 框架
+适合在 .NET Framework 框架中使用。当然，也适用于 .NET Core 框架
 
 ```c#
 [Test]
