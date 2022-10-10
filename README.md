@@ -204,7 +204,7 @@ public class DefaultUidGeneratorOptions
 
 #### CachedUidGenerator 配置
 
-在 DefaultUidGenerator 的基础上新增了以下配置
+在 DefaultUidGeneratorOptions 的基础上新增了以下配置
 
 ```c#
 public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
