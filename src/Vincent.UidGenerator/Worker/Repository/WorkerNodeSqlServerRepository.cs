@@ -37,12 +37,12 @@ internal class WorkerNodeSqlServerRepository : IWorkerNodeRepository
         command.CommandText = EntityToSql(workerNodeEntity);
         
         var workId =  command.ExecuteScalar();
-        return (long)(ulong)workId;
+        return Convert.ToInt64(workId);
     }
 
     private string EntityToSql(WorkerNodeEntity workerNodeEntity)
     {
         return
-            $"insert into UidWorkerNode (HostName, Ip, Type) VALUE ('{workerNodeEntity.HostName}','{workerNodeEntity.Ip}',{(int) workerNodeEntity.Type})Select @@IDENTITY;";
+            $"insert into UidWorkerNode (HostName, Ip, Type) VALUES ('{workerNodeEntity.HostName}','{workerNodeEntity.Ip}',{(int) workerNodeEntity.Type})Select @@IDENTITY;";
     }
 }

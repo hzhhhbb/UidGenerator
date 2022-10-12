@@ -10,9 +10,11 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-string connectionString = "Server=localhost;Port=3306;Database=uid;Uid=root;Pwd=123456;";
-//builder.Services.AddCachedUidGeneratorService(AssignWorkIdScheme.MySql, connectionString);
-builder.Services.AddCachedUidGenerator(options => { });
+string connectionString = "Server=localhost;Port=3306;Database=uid;Uid=root;Pwd=1;";
+string connectionStringForSQLServer = "Server=localhost;Database=uid;User Id=sa;Password=1@hH;TrustServerCertificate=True";
+
+builder.Services.AddCachedUidGenerator(options => { }).AddMySQLWorker(connectionString);
+//builder.Services.AddCachedUidGenerator(options => { }).AddSQLServerWorker(connectionStringForSQLServer);
 //builder.Services.AddDefaultUidGeneratorService();
 builder.Services.AddHealthChecks();
 var app = builder.Build();
@@ -29,13 +31,6 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-app.Use(async (context, next) =>
-{
-    var uidGenerator = context.RequestServices.GetRequiredService<IUidGenerator>();
-    await context.Response.WriteAsync(uidGenerator.GetUid().ToString());
-    await context.Response.CompleteAsync();
-    await next();
-});    
 app.MapControllers();
 
 app.Run();

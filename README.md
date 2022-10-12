@@ -249,7 +249,7 @@ public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
 }
 ```
 
-### 关于UID比特分配的建议
+## 关于UID比特分配的建议
 
 对于并发数要求不高、期望长期使用的应用, 可增加```timeBits```位数, 减少```seqBits```位数. 例如节点采取用完即弃的WorkerIdAssigner策略, 重启频率为12次/天,
 那么配置成```{"workerBits":23,"timeBits":31,"seqBits":9}```时, 可支持28个节点以整体并发量14400 UID/s的速度持续运行68年.
@@ -257,7 +257,7 @@ public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
 对于节点重启频率频繁、期望长期使用的应用, 可增加```workerBits```和```timeBits```位数, 减少```seqBits```位数. 例如节点采取用完即弃的WorkerIdAssigner 策略, 重启频率为24*12次/天,
 那么配置成```{"workerBits":27,"timeBits":30,"seqBits":6}```时, 可支持37个节点以整体并发量2400 UID/s的速度持续运行34年.
 
-#### 吞吐量测试
+## 吞吐量测试
 在MacBook Pro（2.7GHz Intel Core i5, 8G DDR3）上进行了 CachedUidGenerator（单实例）的UID吞吐量测试. 
 首先固定住 workerBits 为任选一个值(如20), 分别统计timeBits变化时(如从25至32, 总时长分别对应1年和136年)的吞吐量, 如下表所示:
 
