@@ -97,18 +97,17 @@ public void ShouldBeGetUidNormallyWhenSerialized()
 
 运行 sql 脚本以导入表 UidWorkerNode , 脚本如下:
 
-#### SQLServer //todo
+#### SQLServer 
 
 ```sql
-create table UidWorkerNode
-(
-    Id         bigint auto_increment primary key,
-    HostName   varchar(100) charset utf8mb3 default '''' not null,
-    Ip         varchar(100) default '''' not null,
-    Type       int          default 0    not null,
-    LaunchDate timestamp    default CURRENT_TIMESTAMP null
-);
-alter table UidWorkerNode auto_increment=1025;
+CREATE TABLE [dbo].[UidWorkerNode] (
+  [Id]         BIGINT        IDENTITY (1025, 1) NOT NULL,
+  [HostName]   VARCHAR (100) NOT NULL,
+  [Ip]         VARCHAR (100) NOT NULL,
+  [Type]       INT           DEFAULT ((0)) NOT NULL,
+  [LaunchDate] DATETIME      DEFAULT (getdate()) NOT NULL,
+  CONSTRAINT [PK_UidWorkerNode] PRIMARY KEY CLUSTERED ([Id] ASC)
+  );
 ```
 
 #### MySQL
