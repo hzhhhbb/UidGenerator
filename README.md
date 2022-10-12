@@ -256,7 +256,7 @@ public class CachedUidGeneratorOptions : DefaultUidGeneratorOptions
 对于节点重启频率频繁、期望长期使用的应用, 可增加```workerBits```和```timeBits```位数, 减少```seqBits```位数. 例如节点采取用完即弃的WorkerIdAssigner 策略, 重启频率为24*12次/天,
 那么配置成```{"workerBits":27,"timeBits":30,"seqBits":6}```时, 可支持37个节点以整体并发量2400 UID/s的速度持续运行34年.
 
-## 吞吐量测试
+## 吞吐量测试（原项目的测试结论）
 在MacBook Pro（2.7GHz Intel Core i5, 8G DDR3）上进行了 CachedUidGenerator（单实例）的UID吞吐量测试. 
 首先固定住 workerBits 为任选一个值(如20), 分别统计timeBits变化时(如从25至32, 总时长分别对应1年和136年)的吞吐量, 如下表所示:
 
